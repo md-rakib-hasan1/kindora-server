@@ -1,3 +1,4 @@
+
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -11,7 +12,7 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
+// CORS
 app.use(
   cors({
     origin: "http://localhost:3000",
@@ -19,38 +20,44 @@ app.use(
   })
 );
 
-// MongoDB Connection
+// MongoDB connection
 const client = new MongoClient(process.env.MONGODB_URI);
-
 await client.connect();
 
 console.log("MongoDB connected successfully!");
 
 const db = client.db(process.env.DB_NAME);
 
-// Better Auth Configuration
+// Better Auth configuration
 const auth = betterAuth({
-  database: mongodbAdapter(db, {
-    client,
-  }),
+  database: mongodbAdapter(db, { client }),
+
+  baseURL: "http://localhost:5000",
+   trustedOrigins: [
+    "http://localhost:3000",
+    "http://localhost:5000",
+  ],
+
 
   emailAndPassword: {
     enabled: true,
+    minPasswordLength: 6,
+    maxPasswordLength: 128,
   },
 });
 
-// Better Auth Route (Express 5)
+// Better Auth route (must be before express.json)
 app.all("/api/auth/*splat", toNodeHandler(auth));
 
-// Body parser
+// JSON middleware for other Express routes
 app.use(express.json());
 
-// Test Route
+// Test route
 app.get("/", (req, res) => {
   res.send("Kindora API is running!");
 });
 
-// Start Server
+// Start server
 app.listen(PORT, () => {
   console.log(`Kindora server running on port ${PORT}`);
 });
