@@ -74,6 +74,69 @@ app.get("/api/events", async (req, res) => {
   }
 });
 
+//post method 
+app.post("/api/events", async (req, res) => {
+  try {
+    const {
+      title,
+      description,
+      type,
+      thumbnail,
+      location,
+      date,
+      creatorEmail,
+    } = req.body;
+
+    // Check required fields
+    if (
+      !title ||
+      !description ||
+      !type ||
+      !thumbnail ||
+      !location ||
+      !date ||
+      !creatorEmail
+    ) {
+      return res.status(400).send({
+        message: "All fields are required",
+      });
+    }
+
+    // Validate event date
+    const eventDate = new Date(date);
+
+    if (Number.isNaN(eventDate.getTime()) || eventDate <= new Date()) {
+      return res.status(400).send({
+        message: "Event date must be in the future",
+      });
+    }
+
+    const newEvent = {
+      title,
+      description,
+      type,
+      thumbnail,
+      location,
+      date: eventDate,
+      creatorEmail,
+      createdAt: new Date(),
+    };
+
+    const result = await eventsCollection.insertOne(newEvent);
+
+    res.status(201).send({
+      message: "Event created successfully",
+      insertedId: result.insertedId,
+    });
+  } catch (error) {
+    console.error("Failed to create event:", error);
+
+    res.status(500).send({
+      message: "Failed to create event",
+    });
+  }
+});
+
 // Test route
 app.get("/", (req, res) => {
   res.send("Kindora API is running!");
