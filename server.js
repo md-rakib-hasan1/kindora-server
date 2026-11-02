@@ -27,6 +27,7 @@ await client.connect();
 console.log("MongoDB connected successfully!");
 
 const db = client.db(process.env.DB_NAME);
+const eventsCollection = db.collection("events");
 
 // Better Auth configuration
 const auth = betterAuth({
@@ -51,6 +52,27 @@ app.all("/api/auth/*splat", toNodeHandler(auth));
 
 // JSON middleware for other Express routes
 app.use(express.json());
+
+//get api
+
+app.get("/api/events", async (req, res) => {
+  try {
+    const events = await eventsCollection
+      .find({
+        date: { $gte: new Date() },
+      })
+      .sort({ date: 1 })
+      .toArray();
+
+    res.status(200).send(events);
+  } catch (error) {
+    console.error("Failed to fetch events:", error);
+
+    res.status(500).send({
+      message: "Failed to fetch events",
+    });
+  }
+});
 
 // Test route
 app.get("/", (req, res) => {
