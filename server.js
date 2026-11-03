@@ -74,6 +74,39 @@ app.get("/api/events", async (req, res) => {
   }
 });
 
+// get events details/id
+app.get("/api/events/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validate event ID
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).send({
+        message: "Invalid event ID",
+      });
+    }
+
+    // Find event by ID
+    const event = await eventsCollection.findOne({
+      _id: new ObjectId(id),
+    });
+
+    if (!event) {
+      return res.status(404).send({
+        message: "Event not found",
+      });
+    }
+
+    res.status(200).send(event);
+  } catch (error) {
+    console.error("Failed to fetch event details:", error);
+
+    res.status(500).send({
+      message: "Failed to fetch event details",
+    });
+  }
+});
+
 //POST /api/events
 app.post("/api/events", async (req, res) => {
   try {
