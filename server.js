@@ -27,8 +27,17 @@ await client.connect();
 console.log("MongoDB connected successfully!");
 
 const db = client.db(process.env.DB_NAME);
+
 const eventsCollection = db.collection("events");
 const eventJoinsCollection = db.collection("eventJoins");
+
+// Prevent duplicate event joins
+await eventJoinsCollection.createIndex(
+  { eventId: 1, userEmail: 1 },
+  { unique: true }
+);
+
+console.log("Event join unique index created!");
 
 // Better Auth configuration
 const auth = betterAuth({
