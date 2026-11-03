@@ -180,7 +180,7 @@ app.post("/api/events/:id/join", async (req, res) => {
   }
 });
 
-// joined
+// GET /api/joined-events endpoint
 app.get("/api/joined-events", async (req, res) => {
   try {
     const { email } = req.query;
@@ -228,6 +228,51 @@ app.get("/api/joined-events", async (req, res) => {
 
     res.status(500).send({
       message: "Failed to fetch joined events",
+    });
+  }
+});
+
+// 
+
+app.delete("/api/events/:id/leave", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userEmail } = req.body;
+
+    // Validate event ID
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).send({
+        message: "Invalid event ID",
+      });
+    }
+
+    // Check user email
+    if (!userEmail) {
+      return res.status(400).send({
+        message: "User email is required",
+      });
+    }
+
+    // Remove user's event registration
+    const result = await eventJoinsCollection.deleteOne({
+      eventId: new ObjectId(id),
+      userEmail,
+    });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).send({
+        message: "You have not joined this event",
+      });
+    }
+
+    res.status(200).send({
+      message: "You have left the event successfully",
+    });
+  } catch (error) {
+    console.error("Failed to leave event:", error);
+
+    res.status(500).send({
+      message: "Failed to leave event",
     });
   }
 });
