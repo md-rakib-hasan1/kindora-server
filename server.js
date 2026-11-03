@@ -28,6 +28,7 @@ console.log("MongoDB connected successfully!");
 
 const db = client.db(process.env.DB_NAME);
 const eventsCollection = db.collection("events");
+const eventJoinsCollection = db.collection("eventJoins");
 
 // Better Auth configuration
 const auth = betterAuth({
@@ -103,6 +104,78 @@ app.get("/api/events/:id", async (req, res) => {
 
     res.status(500).send({
       message: "Failed to fetch event details",
+    });
+  }
+});
+
+//post join events/id
+app.post("/api/events/:id/join", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userEmail } = req.body;
+
+    // Validate event ID
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).send({
+        message: "Invalid event ID",
+      });
+    }
+
+    // Check user email
+    if (!userEmail) {
+      return res.status(400).send({
+        message: "User email is required",
+      });
+    }
+
+    // Check whether event exists
+    const event = await eventsCollection.findOne({
+      _id: new ObjectId(id),
+    });
+
+    if (!event) {
+      return res.status(404).send({
+        message: "Event not found",
+      });
+    }
+
+    // Prevent event creator from joining their own event
+    if (event.creatorEmail === userEmail) {
+      return res.status(400).send({
+        message: "You cannot join your own event",
+      });
+    }
+
+    // Check duplicate join
+    const existingJoin = await eventJoinsCollection.findOne({
+      eventId: new ObjectId(id),
+      userEmail,
+    });
+
+    if (existingJoin) {
+      return res.status(409).send({
+        message: "You have already joined this event",
+      });
+    }
+
+    // Save join information
+    const joinData = {
+      eventId: new ObjectId(id),
+      userEmail,
+      joinedAt: new Date(),
+    };
+
+    const result = await eventJoinsCollection.insertOne(joinData);
+
+    res.status(201).send({
+      message: "Event joined successfully",
+      insertedId: result.insertedId,
+    });
+  } catch (error) {
+    console.error("Failed to join event:", error);
+
+    res.status(500).send({
+      message: "Failed to join event",
     });
   }
 });
