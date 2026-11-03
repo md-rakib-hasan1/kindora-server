@@ -44,7 +44,7 @@ const auth = betterAuth({
   database: mongodbAdapter(db, { client }),
 
   baseURL: "http://localhost:5000",
-   trustedOrigins: [
+  trustedOrigins: [
     "http://localhost:3000",
     "http://localhost:5000",
   ],
@@ -60,7 +60,7 @@ const auth = betterAuth({
 
 const JWKS = createRemoteJWKSet(
   new URL("http://localhost:5000/api/auth/jwks")
-); 
+);
 
 const verifyJWT = async (req, res, next) => {
   try {
@@ -138,7 +138,7 @@ app.post("/api/events", verifyJWT, async (req, res) => {
       !type ||
       !thumbnail ||
       !location ||
-      !date 
+      !date
     ) {
       return res.status(400).send({
         message: "All fields are required",
@@ -161,7 +161,7 @@ app.post("/api/events", verifyJWT, async (req, res) => {
       thumbnail,
       location,
       date: eventDate,
-      creatorEmail:req.user.email,
+      creatorEmail: req.user.email,
       createdAt: new Date(),
     };
 
@@ -184,7 +184,7 @@ app.post("/api/events", verifyJWT, async (req, res) => {
 app.patch("/api/events/:id", verifyJWT, async (req, res) => {
   try {
     const { id } = req.params;
-    const {...updateData } = req.body;
+    const { ...updateData } = req.body;
 
     // Validate event ID
     if (!ObjectId.isValid(id)) {
@@ -237,7 +237,7 @@ app.patch("/api/events/:id", verifyJWT, async (req, res) => {
     const result = await eventsCollection.updateOne(
       {
         _id: new ObjectId(id),
-        creatorEmail:req.user.email,
+        creatorEmail: req.user.email,
       },
       {
         $set: updatedFields,
@@ -260,13 +260,13 @@ app.patch("/api/events/:id", verifyJWT, async (req, res) => {
       message: "Failed to update event",
     });
   }
-}); 
+});
 
 //DELETE /api/events/:id 
 app.delete("/api/events/:id", verifyJWT, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Validate event ID
     if (!ObjectId.isValid(id)) {
       return res.status(400).send({
@@ -336,7 +336,7 @@ app.get("/api/events/:id", async (req, res) => {
 app.post("/api/events/:id/join", verifyJWT, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Validate event ID
     if (!ObjectId.isValid(id)) {
       return res.status(400).send({
@@ -365,7 +365,7 @@ app.post("/api/events/:id/join", verifyJWT, async (req, res) => {
     // Check duplicate join
     const existingJoin = await eventJoinsCollection.findOne({
       eventId: new ObjectId(id),
-     userEmail: req.user.email,
+      userEmail: req.user.email,
     });
 
     if (existingJoin) {
@@ -398,12 +398,11 @@ app.post("/api/events/:id/join", verifyJWT, async (req, res) => {
 
 
 // GET /api/joined-events
-app.get("/api/joined-events", async (req, res) => {
+app.get("/api/joined-events", verifyJWT, async (req, res) => {
   try {
-    const { email } = req.query;
-
+    const userEmail = req.user.email;
     // Check user email
-    if (!email) {
+    if (!userEmail) {
       return res.status(400).send({
         message: "User email is required",
       });
@@ -411,11 +410,16 @@ app.get("/api/joined-events", async (req, res) => {
 
     // Find all events joined by this user
     const joinedEvents = await eventJoinsCollection
-      .find({ userEmail: email })
+      .find({ userEmail })
       .toArray();
 
     // Get event IDs
     const eventIds = joinedEvents.map((join) => join.eventId);
+    // Return empty array if user has not joined any event
+    if (eventIds.length === 0) {
+      return res.status(200).send([]);
+    }
+
 
     // Find corresponding event details
     const events = await eventsCollection
@@ -423,6 +427,8 @@ app.get("/api/joined-events", async (req, res) => {
         _id: { $in: eventIds },
       })
       .toArray();
+
+
 
     // Attach joinedAt information
     const result = events.map((event) => {
