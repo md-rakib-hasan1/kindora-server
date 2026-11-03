@@ -456,11 +456,10 @@ app.get("/api/joined-events", verifyJWT, async (req, res) => {
 });
 
 //DELETE /api/events/:id/leave
-app.delete("/api/events/:id/leave", async (req, res) => {
+app.delete("/api/events/:id/leave", verifyJWT, async (req, res) => {
   try {
     const { id } = req.params;
-    const { userEmail } = req.body;
-
+    const userEmail = req.user.email;
     // Validate event ID
     if (!ObjectId.isValid(id)) {
       return res.status(400).send({
