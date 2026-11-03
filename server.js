@@ -15,7 +15,7 @@ const PORT = process.env.PORT || 5000;
 // CORS
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: process.env.CLIENT_URL,
     credentials: true,
   })
 );
@@ -43,10 +43,10 @@ console.log("Event join unique index created!");
 const auth = betterAuth({
   database: mongodbAdapter(db, { client }),
 
-  baseURL: "http://localhost:5000",
+  baseURL: process.env.BETTER_AUTH_URL,
   trustedOrigins: [
-    "http://localhost:3000",
-    "http://localhost:5000",
+   process.env.CLIENT_URL,
+   process.env.BETTER_AUTH_URL,
   ],
 
 
@@ -59,7 +59,7 @@ const auth = betterAuth({
 });
 
 const JWKS = createRemoteJWKSet(
-  new URL("http://localhost:5000/api/auth/jwks")
+  new URL(`${process.env.BETTER_AUTH_URL}/api/auth/jwks`)
 );
 
 const verifyJWT = async (req, res, next) => {
@@ -75,8 +75,8 @@ const verifyJWT = async (req, res, next) => {
     const token = authorization.split(" ")[1];
 
     const { payload } = await jwtVerify(token, JWKS, {
-      issuer: "http://localhost:5000",
-      audience: "http://localhost:5000",
+      issuer: process.env.BETTER_AUTH_URL,
+      audience: process.env.BETTER_AUTH_URL,
     });
 
     req.user = payload;
@@ -526,16 +526,6 @@ app.get("/api/my-events", verifyJWT, async (req, res) => {
       message: "Failed to fetch your events",
     });
   }
-});
-
-
-//GET /api/protected-test 
-
-app.get("/api/protected-test", verifyJWT, (req, res) => {
-  res.status(200).send({
-    message: "JWT verification successful!",
-    user: req.user,
-  });
 });
 
 
