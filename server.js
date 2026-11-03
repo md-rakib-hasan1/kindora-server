@@ -2,7 +2,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "@better-auth/mongo-adapter";
 import { toNodeHandler } from "better-auth/node";
@@ -53,7 +53,7 @@ app.all("/api/auth/*splat", toNodeHandler(auth));
 // JSON middleware for other Express routes
 app.use(express.json());
 
-//get api
+//get api/events
 
 app.get("/api/events", async (req, res) => {
   try {
@@ -74,7 +74,7 @@ app.get("/api/events", async (req, res) => {
   }
 });
 
-//post method 
+//POST /api/events
 app.post("/api/events", async (req, res) => {
   try {
     const {
@@ -136,6 +136,98 @@ app.post("/api/events", async (req, res) => {
     });
   }
 });
+
+// upDate api/events/id 
+
+app.patch("/api/events/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { creatorEmail, ...updateData } = req.body;
+
+    // Validate event ID
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).send({
+        message: "Invalid event ID",
+      });
+    }
+
+    // Check required owner information
+    if (!creatorEmail) {
+      return res.status(400).send({
+        message: "Creator email is required",
+      });
+    }
+
+    // Only allow these fields to be updated
+    const allowedFields = [
+      "title",
+      "description",
+      "type",
+      "thumbnail",
+      "location",
+      "date",
+    ];
+
+    const updatedFields = {};
+
+    allowedFields.forEach((field) => {
+      if (updateData[field] !== undefined) {
+        updatedFields[field] = updateData[field];
+      }
+    });
+
+    if (Object.keys(updatedFields).length === 0) {
+      return res.status(400).send({
+        message: "No valid fields provided for update",
+      });
+    }
+
+    // Validate updated date
+    if (updatedFields.date !== undefined) {
+      const eventDate = new Date(updatedFields.date);
+
+      if (
+        Number.isNaN(eventDate.getTime()) ||
+        eventDate <= new Date()
+      ) {
+        return res.status(400).send({
+          message: "Event date must be in the future",
+        });
+      }
+
+      updatedFields.date = eventDate;
+    }
+
+    // Update only the event belonging to this creator
+    const result = await eventsCollection.updateOne(
+      {
+        _id: new ObjectId(id),
+        creatorEmail,
+      },
+      {
+        $set: updatedFields,
+      }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).send({
+        message: "Event not found or you are not the owner",
+      });
+    }
+
+    res.status(200).send({
+      message: "Event updated successfully",
+    });
+  } catch (error) {
+    console.error("Failed to update event:", error);
+
+    res.status(500).send({
+      message: "Failed to update event",
+    });
+  }
+});
+
+
 
 // Test route
 app.get("/", (req, res) => {
