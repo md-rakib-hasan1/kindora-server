@@ -500,12 +500,13 @@ app.delete("/api/events/:id/leave", verifyJWT, async (req, res) => {
 
 
 //GET /api/my-events
-app.get("/api/my-events", async (req, res) => {
+app.get("/api/my-events", verifyJWT, async (req, res) => {
   try {
-    const { email } = req.query;
+    // Get authenticated user's email from JWT
+    const userEmail = req.user.email;
 
     // Check creator email
-    if (!email) {
+    if (!userEmail) {
       return res.status(400).send({
         message: "Creator email is required",
       });
@@ -513,7 +514,7 @@ app.get("/api/my-events", async (req, res) => {
 
     // Find events created by this user
     const myEvents = await eventsCollection
-      .find({ creatorEmail: email })
+      .find({ creatorEmail: userEmail })
       .sort({ date: 1 })
       .toArray();
 
