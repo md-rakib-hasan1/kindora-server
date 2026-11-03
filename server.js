@@ -333,22 +333,14 @@ app.get("/api/events/:id", async (req, res) => {
 
 
 //POST /api/events/:id/join
-app.post("/api/events/:id/join", async (req, res) => {
+app.post("/api/events/:id/join", verifyJWT, async (req, res) => {
   try {
     const { id } = req.params;
-    const { userEmail } = req.body;
-
+    
     // Validate event ID
     if (!ObjectId.isValid(id)) {
       return res.status(400).send({
         message: "Invalid event ID",
-      });
-    }
-
-    // Check user email
-    if (!userEmail) {
-      return res.status(400).send({
-        message: "User email is required",
       });
     }
 
@@ -364,7 +356,7 @@ app.post("/api/events/:id/join", async (req, res) => {
     }
 
     // Prevent event creator from joining their own event
-    if (event.creatorEmail === userEmail) {
+    if (event.creatorEmail === req.user.email) {
       return res.status(400).send({
         message: "You cannot join your own event",
       });
@@ -373,7 +365,7 @@ app.post("/api/events/:id/join", async (req, res) => {
     // Check duplicate join
     const existingJoin = await eventJoinsCollection.findOne({
       eventId: new ObjectId(id),
-      userEmail,
+     userEmail: req.user.email,
     });
 
     if (existingJoin) {
@@ -385,7 +377,7 @@ app.post("/api/events/:id/join", async (req, res) => {
     // Save join information
     const joinData = {
       eventId: new ObjectId(id),
-      userEmail,
+      userEmail: req.user.email,
       joinedAt: new Date(),
     };
 
