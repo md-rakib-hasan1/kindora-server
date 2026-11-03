@@ -180,6 +180,58 @@ app.post("/api/events/:id/join", async (req, res) => {
   }
 });
 
+// joined
+app.get("/api/joined-events", async (req, res) => {
+  try {
+    const { email } = req.query;
+
+    // Check user email
+    if (!email) {
+      return res.status(400).send({
+        message: "User email is required",
+      });
+    }
+
+    // Find all events joined by this user
+    const joinedEvents = await eventJoinsCollection
+      .find({ userEmail: email })
+      .toArray();
+
+    // Get event IDs
+    const eventIds = joinedEvents.map((join) => join.eventId);
+
+    // Find corresponding event details
+    const events = await eventsCollection
+      .find({
+        _id: { $in: eventIds },
+      })
+      .toArray();
+
+    // Attach joinedAt information
+    const result = events.map((event) => {
+      const joinInfo = joinedEvents.find(
+        (join) => join.eventId.toString() === event._id.toString()
+      );
+
+      return {
+        ...event,
+        joinedAt: joinInfo.joinedAt,
+      };
+    });
+
+    // Sort by event date
+    result.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    res.status(200).send(result);
+  } catch (error) {
+    console.error("Failed to fetch joined events:", error);
+
+    res.status(500).send({
+      message: "Failed to fetch joined events",
+    });
+  }
+});
+
 //POST /api/events
 app.post("/api/events", async (req, res) => {
   try {
