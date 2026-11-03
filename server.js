@@ -181,22 +181,15 @@ app.post("/api/events", verifyJWT, async (req, res) => {
 });
 
 //PATCH /api/events/:id 
-app.patch("/api/events/:id", async (req, res) => {
+app.patch("/api/events/:id", verifyJWT, async (req, res) => {
   try {
     const { id } = req.params;
-    const { creatorEmail, ...updateData } = req.body;
+    const {...updateData } = req.body;
 
     // Validate event ID
     if (!ObjectId.isValid(id)) {
       return res.status(400).send({
         message: "Invalid event ID",
-      });
-    }
-
-    // Check required owner information
-    if (!creatorEmail) {
-      return res.status(400).send({
-        message: "Creator email is required",
       });
     }
 
@@ -244,7 +237,7 @@ app.patch("/api/events/:id", async (req, res) => {
     const result = await eventsCollection.updateOne(
       {
         _id: new ObjectId(id),
-        creatorEmail,
+        creatorEmail:req.user.email,
       },
       {
         $set: updatedFields,
