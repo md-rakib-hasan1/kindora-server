@@ -227,6 +227,49 @@ app.patch("/api/events/:id", async (req, res) => {
   }
 });
 
+//delete api/events/id
+
+app.delete("/api/events/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { creatorEmail } = req.body;
+
+    // Validate event ID
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).send({
+        message: "Invalid event ID",
+      });
+    }
+
+    if (!creatorEmail) {
+      return res.status(400).send({
+        message: "Creator email is required",
+      });
+    }
+
+    // Delete only the event belonging to this creator
+    const result = await eventsCollection.deleteOne({
+      _id: new ObjectId(id),
+      creatorEmail,
+    });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).send({
+        message: "Event not found or you are not the owner",
+      });
+    }
+
+    res.status(200).send({
+      message: "Event deleted successfully",
+    });
+  } catch (error) {
+    console.error("Failed to delete event:", error);
+
+    res.status(500).send({
+      message: "Failed to delete event",
+    });
+  }
+});
 
 
 // Test route
