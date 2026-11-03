@@ -263,11 +263,10 @@ app.patch("/api/events/:id", verifyJWT, async (req, res) => {
 }); 
 
 //DELETE /api/events/:id 
-app.delete("/api/events/:id", async (req, res) => {
+app.delete("/api/events/:id", verifyJWT, async (req, res) => {
   try {
     const { id } = req.params;
-    const { creatorEmail } = req.body;
-
+    
     // Validate event ID
     if (!ObjectId.isValid(id)) {
       return res.status(400).send({
@@ -275,16 +274,10 @@ app.delete("/api/events/:id", async (req, res) => {
       });
     }
 
-    if (!creatorEmail) {
-      return res.status(400).send({
-        message: "Creator email is required",
-      });
-    }
-
     // Delete only the event belonging to this creator
     const result = await eventsCollection.deleteOne({
       _id: new ObjectId(id),
-      creatorEmail,
+      creatorEmail: req.user.email,
     });
 
     if (result.deletedCount === 0) {
@@ -546,16 +539,6 @@ app.get("/api/protected-test", verifyJWT, (req, res) => {
     user: req.user,
   });
 });
-
-
-
-
-
-
-
-
-
-
 
 
 
