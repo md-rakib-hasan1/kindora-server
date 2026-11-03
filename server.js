@@ -241,8 +241,35 @@ app.get("/api/joined-events", async (req, res) => {
   }
 });
 
-// 
+// manage events
+app.get("/api/my-events", async (req, res) => {
+  try {
+    const { email } = req.query;
 
+    // Check creator email
+    if (!email) {
+      return res.status(400).send({
+        message: "Creator email is required",
+      });
+    }
+
+    // Find events created by this user
+    const myEvents = await eventsCollection
+      .find({ creatorEmail: email })
+      .sort({ date: 1 })
+      .toArray();
+
+    res.status(200).send(myEvents);
+  } catch (error) {
+    console.error("Failed to fetch your events:", error);
+
+    res.status(500).send({
+      message: "Failed to fetch your events",
+    });
+  }
+});
+
+// delete leave events
 app.delete("/api/events/:id/leave", async (req, res) => {
   try {
     const { id } = req.params;
