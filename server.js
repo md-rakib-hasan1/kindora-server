@@ -66,9 +66,12 @@ const auth = betterAuth({
   plugins: [jwt()],
 });
 
-const JWKS = createRemoteJWKSet(
-  new URL(`${process.env.BETTER_AUTH_URL}/api/auth/jwks`)
-);
+const jwksUrl = `${process.env.BETTER_AUTH_URL}/api/auth/jwks`;
+
+console.log("Better Auth URL:", process.env.BETTER_AUTH_URL);
+console.log("JWKS URL:", jwksUrl);
+
+const JWKS = createRemoteJWKSet(new URL(jwksUrl));
 
 const verifyJWT = async (req, res, next) => {
   try {
