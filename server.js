@@ -309,19 +309,18 @@ app.delete("/api/events/:id", verifyJWT, async (req, res) => {
   }
 });
 
-//GET /api/events/:id 
+
+// GET /api/events/:id
 app.get("/api/events/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Validate event ID
     if (!ObjectId.isValid(id)) {
       return res.status(400).send({
         message: "Invalid event ID",
       });
     }
 
-    // Find event by ID
     const event = await eventsCollection.findOne({
       _id: new ObjectId(id),
     });
@@ -332,7 +331,15 @@ app.get("/api/events/:id", async (req, res) => {
       });
     }
 
-    res.status(200).send(event);
+    // Count event participants
+    const participantCount = await eventJoinsCollection.countDocuments({
+      eventId: new ObjectId(id),
+    });
+
+    res.status(200).send({
+      ...event,
+      participantCount,
+    });
   } catch (error) {
     console.error("Failed to fetch event details:", error);
 
@@ -341,6 +348,34 @@ app.get("/api/events/:id", async (req, res) => {
     });
   }
 });
+
+// GET /api/events/:id/join-status
+app.get("/api/events/:id/join-status", verifyJWT, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).send({
+        message: "Invalid event ID",
+      });
+    }
+
+    const existingJoin = await eventJoinsCollection.findOne({
+      eventId: new ObjectId(id),
+      userEmail: req.user.email,
+    });
+
+    res.status(200).send({
+      isJoined: Boolean(existingJoin),
+    });
+  } catch (error) {
+    console.error("Failed to check join status:", error);
+
+    res.status(500).send({
+      message: "Failed to check join status",
+    });
+  }
+}); 
 
 
 //POST /api/events/:id/join
