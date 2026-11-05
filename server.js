@@ -118,6 +118,7 @@ app.get("/api/events", async (req, res) => {
         date: { $gte: new Date() },
       })
       .sort({ date: 1 })
+      .limit(6)
       .toArray();
 
     res.status(200).send(events);
