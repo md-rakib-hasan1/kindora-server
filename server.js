@@ -111,7 +111,28 @@ app.use(express.json());
 
 
 //GET api/events
+// GET /api/events - All upcoming events
 app.get("/api/events", async (req, res) => {
+  try {
+    const events = await eventsCollection
+      .find({
+        date: { $gte: new Date() },
+      })
+      .sort({ date: 1 })
+      .toArray();
+
+    res.status(200).send(events);
+  } catch (error) {
+    console.error("Failed to fetch events:", error);
+
+    res.status(500).send({
+      message: "Failed to fetch events",
+    });
+  }
+});
+
+// GET /api/events/featured - Latest 6 upcoming events for homepage
+app.get("/api/events/featured", async (req, res) => {
   try {
     const events = await eventsCollection
       .find({
@@ -123,10 +144,10 @@ app.get("/api/events", async (req, res) => {
 
     res.status(200).send(events);
   } catch (error) {
-    console.error("Failed to fetch events:", error);
+    console.error("Failed to fetch featured events:", error);
 
     res.status(500).send({
-      message: "Failed to fetch events",
+      message: "Failed to fetch featured events",
     });
   }
 });
@@ -376,7 +397,7 @@ app.get("/api/events/:id/join-status", verifyJWT, async (req, res) => {
       message: "Failed to check join status",
     });
   }
-}); 
+});
 
 
 //POST /api/events/:id/join
